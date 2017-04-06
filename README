@@ -1,4 +1,4 @@
-This program pulls all audio tracks from your VK.COM account and stores them in a working directory (./dump) in format <Performer> - <Track name>
+This program pulls info about all your audio tracks in your VK.COM account and stores it in a working directory (./dump) in format <Performer> - <Track name>
 
 Program is developed and tested on Python 3.4.2. 
 usage: python3 main.py
