@@ -129,4 +129,4 @@ trackCounter = 0
 for i in range(len(parsedJSON['list'])):
 	f.write(parsedJSON['list'][i][4] + ' - ' +  parsedJSON['list'][i][3] + '\n')
 	trackCounter += 1
-print('Tracks written to ./dump: ' + trackCounter)
+print('Tracks written to ./dump: ', trackCounter)
