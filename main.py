@@ -4,15 +4,25 @@ import json
 
 def getFormAction(html: 'html code with login form') -> str:
 	"""
-	function to get the link for authorization request	
+	function to get the url for authorization request	
 	"""
 	form_action = re.findall(r'<form(?= ).* action="(.+)"', html)
 	if form_action:
 		return form_action[0]
 
+def getTwoFactorAction(html: 'html code with two-factor auth form') -> str:
+	"""
+	function to get the url for two-factor auth request
+	"""
+	TFA_url = re.findall(r'<form(?= ).* action="(.+)"', html)
+	if TFA_url:
+		return TFA_url[0]
+
 ###########################################################################
+user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36'
+
 getHeaders = 	{
-			'User-Agent' : 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36',
+			'User-Agent' : user_agent
 
 		}
 
@@ -37,10 +47,31 @@ loginFormData = 	{
 				'pass' : password
 			}
 
-rs = session.post(loginFormAction, loginFormData)
-print('Trying to log in... ', rs)
+loginResponse = session.post(loginFormAction, loginFormData)
+print('Trying to log in... ', loginResponse)
 ########################################################################################
 
+match = re.search('код подтверждения', loginResponse.text)
+if match:
+	print('Two-factor authentication is enabled.')
+
+	TFA_url = 'https://m.vk.com' + getTwoFactorAction(loginResponse.text)
+	if TFA_url == 'https://m.vk.com':
+		raise Exception('Failed to get 2fa_url for auth request')
+	
+	#print(TFA_url)
+	TFA_code = input('Enter the 2FA code from your authenticator app: ')
+	TFAFormData = 	{
+				'_ajax' : '1',
+				'code' : TFA_code
+			}
+	TFAHeaders = 	{
+				'User-Agent' : user_agent,
+				'Content-Type' : 'application/x-www-form-urlencoded'
+			}
+	TFA_responce = session.post(TFA_url, headers=TFAHeaders, data=TFAFormData)
+	print('Sending POST with TFA... ', TFA_responce)
+#######################################################################################
 #vk hash and owner_id are user specific
 #get vk hash (is not used now, probably will be used later)
 rs = session.get('https://vk.com', headers=getHeaders)
@@ -74,7 +105,7 @@ data = 	{
 	}
 
 headers = 	{
-			'User-Agent' : 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36',
+			'User-Agent' : user_agent,
 			'Content-Type' : 'application/x-www-form-urlencoded',
 			'X-Requested-With' : 'XMLHttpRequest'
 		}
