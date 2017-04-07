@@ -20,7 +20,8 @@ def getTwoFactorAction(html: 'html code with two-factor auth form') -> str:
 
 ###########################################################################
 user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36'
-
+urlAudioPHP = 'https://vk.com/al_audio.php'
+##########################################################################
 getHeaders = 	{
 			'User-Agent' : user_agent
 
@@ -51,13 +52,13 @@ loginResponse = session.post(loginFormAction, loginFormData)
 print('Trying to log in... ', loginResponse)
 ########################################################################################
 
-match = re.search('код подтверждения', loginResponse.text)
+match = re.search('authcheck', loginResponse.text)
 if match:
 	print('Two-factor authentication is enabled.')
 
 	TFA_url = 'https://m.vk.com' + getTwoFactorAction(loginResponse.text)
 	if TFA_url == 'https://m.vk.com':
-		raise Exception('Failed to get 2fa_url for auth request')
+		raise Exception('Failed to get 2FA url for auth request')
 	
 	#print(TFA_url)
 	TFA_code = input('Enter the 2FA code from your authenticator app: ')
@@ -70,7 +71,7 @@ if match:
 				'Content-Type' : 'application/x-www-form-urlencoded'
 			}
 	TFA_responce = session.post(TFA_url, headers=TFAHeaders, data=TFAFormData)
-	print('Sending POST with TFA... ', TFA_responce)
+	print('Sending POST with 2FA... ', TFA_responce)
 #######################################################################################
 #vk hash and owner_id are user specific
 #get vk hash (is not used now, probably will be used later)
@@ -110,7 +111,7 @@ headers = 	{
 			'X-Requested-With' : 'XMLHttpRequest'
 		}
 
-rs = session.post('https://vk.com/al_audio.php', headers=headers, data=data)
+rs = session.post(urlAudioPHP, headers=headers, data=data)
 print('Sending POST to al_audio.php... ', rs)
 
 raw_response = rs.text
