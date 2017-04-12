@@ -3,7 +3,7 @@ import re
 import json
 import getpass
 
-def getFormAction(html: 'html code with login form') -> str:
+def getFormAction(html: 'html code with some <form>') -> str:
 	"""
 	function to get the urls for authorization and 2FA requests	
 	"""
