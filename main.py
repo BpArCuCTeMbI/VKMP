@@ -5,19 +5,19 @@ import getpass
 
 def getFormAction(html: 'html code with login form') -> str:
 	"""
-	function to get the url for authorization request	
+	function to get the urls for authorization and 2FA requests	
 	"""
 	form_action = re.findall(r'<form(?= ).* action="(.+)"', html)
 	if form_action:
 		return form_action[0]
 
-def getTwoFactorAction(html: 'html code with two-factor auth form') -> str:
-	"""
-	function to get the url for two-factor auth request
-	"""
-	TFA_url = re.findall(r'<form(?= ).* action="(.+)"', html)
-	if TFA_url:
-		return TFA_url[0]
+#def getTwoFactorAction(html: 'html code with two-factor auth form') -> str:
+#	"""
+#	function to get the url for two-factor auth request
+#	"""
+#	TFA_url = re.findall(r'<form(?= ).* action="(.+)"', html)
+#	if TFA_url:
+#		return TFA_url[0]
 
 ###########################################################################
 user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36'
@@ -32,7 +32,7 @@ getHeaders = 	{
 session = requests.Session()
 
 email = input("email: ")
-password = getpass.getpass('password:')
+password = getpass.getpass('password: ')
 
 ######################################################################################
 #logging in from mobile version of VK (it's cleaner)
@@ -57,7 +57,7 @@ match = re.search('authcheck', loginResponse.text)
 if match:
 	print('Two-factor authentication is enabled.')
 
-	TFA_url = 'https://m.vk.com' + getTwoFactorAction(loginResponse.text)
+	TFA_url = 'https://m.vk.com' + getFormAction(loginResponse.text)
 	if TFA_url == 'https://m.vk.com':
 		raise Exception('Failed to get 2FA url for auth request')
 	
