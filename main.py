@@ -1,6 +1,7 @@
 import requests
 import re
 import json
+import getpass
 
 def getFormAction(html: 'html code with login form') -> str:
 	"""
@@ -31,7 +32,7 @@ getHeaders = 	{
 session = requests.Session()
 
 email = input("email: ")
-password = input("password: ")
+password = getpass.getpass('password:')
 
 ######################################################################################
 #logging in from mobile version of VK (it's cleaner)
