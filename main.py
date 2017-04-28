@@ -22,6 +22,8 @@ def getFormAction(html: 'html code with some <form>') -> str:
 ###########################################################################
 user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36'
 urlAudioPHP = 'https://vk.com/al_audio.php'
+
+maxAudioNumber = int(input('enter the number of tracks on your account (see your profile page): '))
 ##########################################################################
 getHeaders = 	{
 			'User-Agent' : user_agent
@@ -79,7 +81,7 @@ if match:
 rs = session.get('https://vk.com', headers=getHeaders)
 match = re.search(r'(hash)=([a-zA-Z0-9]*)', rs.text)
 if match is None:
-	raise Exception('Failed to get vk hash')
+	raise Exception('Failed to get vk hash: bad login or vk html markup was changed')
 vk_hash = match.group(2)
 print('HASH is: ' + vk_hash)
 
@@ -98,38 +100,49 @@ owner_id = match.group(1)
 print('User id: ' + owner_id)
 
 ###################################################################################33
-data = 	{
-		'act' : 'load_silent',
-		'al' : '1',
-		'album_id' : '-2',
-		'band' : 'false',
-		'owner_id' : owner_id
-	}
+f = open('./dump', 'w')
+f.close()
+f = open('./dump', 'a')
 
+offset = 0
+trackCounter = 0
 headers = 	{
 			'User-Agent' : user_agent,
 			'Content-Type' : 'application/x-www-form-urlencoded',
 			'X-Requested-With' : 'XMLHttpRequest'
 		}
+data = 	{
+		'act' : 'load_section',
+		'al' : '1',
+		'claim' : '0',
+		'offset' : str(offset),
+		'playlist_id' : '-1',
+		'type' : 'playlist',
+		'owner_id' : owner_id
+	}
 
-rs = session.post(urlAudioPHP, headers=headers, data=data)
-print('Sending POST to al_audio.php... ', rs)
+while offset < maxAudioNumber:
 
-raw_response = rs.text
-match = re.search(r'\{(.*)\}', raw_response)
-cleanJSON = match.group(0)
+	data['offset']= str(offset)
 
-#f = open('./json_response', 'w')
-#f.write(cleanJSON)
+	rs = session.post(urlAudioPHP, headers=headers, data=data)
+	print('Sending POST to al_audio.php... ', rs, 'CURRENT OFFSET=', offset)
 
-parsedJSON = json.loads(cleanJSON)
+	raw_response = rs.text
+	match = re.search(r'\{(.*)\}', raw_response)
+	cleanJSON = match.group(0)
 
-f = open('./dump', 'w')
+	#f = open('./json_response', 'w')
+	#f.write(cleanJSON)
 
-trackCounter = 0
-for i in range(len(parsedJSON['list'])):
-	f.write(parsedJSON['list'][i][4] + ' - ' +  parsedJSON['list'][i][3] + '\n')
-	trackCounter += 1
+	parsedJSON = json.loads(cleanJSON)
+	
+	trackCounter += len(parsedJSON['list'])
+
+	for i in range(len(parsedJSON['list'])):
+		f.write(parsedJSON['list'][i][4] + ' - ' +  parsedJSON['list'][i][3] + '\n')
+	
+	offset += len(parsedJSON['list'])
 
 f.close()
 
