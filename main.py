@@ -2,6 +2,7 @@ import requests
 import re
 import json
 import getpass
+import html
 
 def getFormAction(html: 'html code with some <form>') -> str:
 	"""
@@ -140,7 +141,7 @@ while offset < maxAudioNumber:
 	trackCounter += len(parsedJSON['list'])
 
 	for i in range(len(parsedJSON['list'])):
-		f.write(parsedJSON['list'][i][4] + ' - ' +  parsedJSON['list'][i][3] + '\n')
+		f.write(html.unescape(parsedJSON['list'][i][4]) + ' - ' +  html.unescape(parsedJSON['list'][i][3]) + '\n')
 	
 	offset += len(parsedJSON['list'])
 
