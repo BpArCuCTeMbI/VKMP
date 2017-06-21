@@ -65,7 +65,7 @@ if match:
 		raise Exception('Failed to get 2FA url for auth request')
 	
 	#print(TFA_url)
-	TFA_code = input('Enter the 2FA code from your authenticator app: ')
+	TFA_code = input('Enter the 2FA code from your authenticator app or VK support private message: ')
 	TFAFormData = 	{
 				'_ajax' : '1',
 				'code' : TFA_code
