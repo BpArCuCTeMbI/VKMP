@@ -3,6 +3,9 @@ import re
 import json
 import getpass
 import html
+import os
+import wincertstore
+from sys import platform
 
 def getFormAction(html: 'html code with some <form>') -> str:
 	"""
@@ -33,14 +36,40 @@ getHeaders = 	{
 
 
 session = requests.Session()
+###########################################################################
+#add system CAs for cert checking
 
+#if you get some SSL errors, it's likely you have issues with Certificate Authority file.
+#To fix this usually you need to provide a proper CA file to this program.
+#If you're on LINUX, your system usually has actual file - just google its location
+#and set the REQUESTS_CA_BUNDLE env variable in the next line:
+
+if platform == "linux":
+	print("OS: Windows; changing certs env variable...")
+	os.environ['REQUESTS_CA_BUNDLE'] = os.path.join('/etc/ssl/certs', 'ca-certificates.crt')
+	print("Certs env variable changed: REQUESTS_CA_BUNDLE={0}".format(os.getenv('REQUESTS_CA_BUNDLE')))
+
+#if you're on WINDOWS, it probably should work for you. Extracting
+if platform == "win32":
+	print("OS: Windows; extracting SSL certificates")
+	file = open('./certs_extracted', 'w')
+	for storename in ["CA", "ROOT"]:
+		with wincertstore.CertSystemStore(storename) as store:
+			for cert in store.itercerts(usage=wincertstore.SERVER_AUTH):
+				pem = cert.get_pem()
+				file.write(pem + '\n')
+	file.close()
+	os.environ['REQUESTS_CA_BUNDLE'] = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'certs_extracted')
+	print("Certificates extracted. Certs env variable changed: REQUESTS_CA_BUNDLE={0}".format(os.getenv('REQUESTS_CA_BUNDLE')))
+
+###################################################################################
 email = input("email: ")
 password = getpass.getpass('password: ')
 
 ######################################################################################
 #logging in from mobile version of VK (it's cleaner)
 loginUrl = 'https://m.vk.com'
-loginHTML = session.get(loginUrl, verify=False)
+loginHTML = session.get(loginUrl)
 print('Getting HTML of m.vk.com login page... ', loginHTML)
 
 loginFormAction = getFormAction(loginHTML.text)
@@ -52,7 +81,7 @@ loginFormData = 	{
 				'pass' : password
 			}
 
-loginResponse = session.post(loginFormAction, loginFormData, verify=False)
+loginResponse = session.post(loginFormAction, loginFormData)
 print('Trying to log in... ', loginResponse)
 ########################################################################################
 
@@ -74,12 +103,12 @@ if match:
 				'User-Agent' : user_agent,
 				'Content-Type' : 'application/x-www-form-urlencoded'
 			}
-	TFA_responce = session.post(TFA_url, headers=TFAHeaders, data=TFAFormData, verify=False)
+	TFA_responce = session.post(TFA_url, headers=TFAHeaders, data=TFAFormData)
 	print('Sending POST with 2FA... ', TFA_responce)
 #######################################################################################
 #vk hash and owner_id are user specific
 #get vk hash (is not used now, probably will be used later)
-rs = session.get('https://vk.com', headers=getHeaders, verify=False)
+rs = session.get('https://vk.com', headers=getHeaders)
 match = re.search(r'(hash)=([a-zA-Z0-9]*)', rs.text)
 if match is None:
 	raise Exception('Failed to get vk hash: bad login or vk html markup was changed')
@@ -126,7 +155,7 @@ while offset < maxAudioNumber:
 
 	data['offset']= str(offset)
 
-	rs = session.post(urlAudioPHP, headers=headers, data=data, verify=False)
+	rs = session.post(urlAudioPHP, headers=headers, data=data)
 	print('Sending POST to al_audio.php... ', rs, 'CURRENT OFFSET=', offset)
 
 	raw_response = rs.text
