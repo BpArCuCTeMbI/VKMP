@@ -44,7 +44,7 @@ session = requests.Session()
 #and set the REQUESTS_CA_BUNDLE env variable in the next line:
 
 if platform == "linux":
-	print("OS: Windows; changing certs env variable...")
+	print("OS: Linux; changing certs environment variable...")
 	os.environ['REQUESTS_CA_BUNDLE'] = os.path.join('/etc/ssl/certs', 'ca-certificates.crt')
 	print("Certs env variable changed: REQUESTS_CA_BUNDLE={0}".format(os.getenv('REQUESTS_CA_BUNDLE')))
 
