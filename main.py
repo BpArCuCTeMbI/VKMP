@@ -4,7 +4,6 @@ import json
 import getpass
 import html
 import os
-import wincertstore
 from sys import platform
 
 def getFormAction(html: 'html code with some <form>') -> str:
@@ -51,6 +50,7 @@ if platform == "linux":
 
 #if you're on WINDOWS, it probably should work for you. Extracting
 if platform == "win32":
+	import wincertstore
 	print("OS: Windows; extracting SSL certificates")
 	file = open('./certs_extracted', 'w')
 	for storename in ["CA", "ROOT"]:
