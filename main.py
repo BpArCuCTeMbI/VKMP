@@ -177,3 +177,5 @@ while offset < maxAudioNumber:
 f.close()
 
 print('Tracks written to ./dump: ', trackCounter)
+if platform == "win32":
+	os.remove(os.getenv('REQUESTS_CA_BUNDLE'))
