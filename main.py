@@ -40,7 +40,7 @@ password = getpass.getpass('password: ')
 ######################################################################################
 #logging in from mobile version of VK (it's cleaner)
 loginUrl = 'https://m.vk.com'
-loginHTML = session.get(loginUrl)
+loginHTML = session.get(loginUrl, verify=False)
 print('Getting HTML of m.vk.com login page... ', loginHTML)
 
 loginFormAction = getFormAction(loginHTML.text)
@@ -52,7 +52,7 @@ loginFormData = 	{
 				'pass' : password
 			}
 
-loginResponse = session.post(loginFormAction, loginFormData)
+loginResponse = session.post(loginFormAction, loginFormData, verify=False)
 print('Trying to log in... ', loginResponse)
 ########################################################################################
 
@@ -74,12 +74,12 @@ if match:
 				'User-Agent' : user_agent,
 				'Content-Type' : 'application/x-www-form-urlencoded'
 			}
-	TFA_responce = session.post(TFA_url, headers=TFAHeaders, data=TFAFormData)
+	TFA_responce = session.post(TFA_url, headers=TFAHeaders, data=TFAFormData, verify=False)
 	print('Sending POST with 2FA... ', TFA_responce)
 #######################################################################################
 #vk hash and owner_id are user specific
 #get vk hash (is not used now, probably will be used later)
-rs = session.get('https://vk.com', headers=getHeaders)
+rs = session.get('https://vk.com', headers=getHeaders, verify=False)
 match = re.search(r'(hash)=([a-zA-Z0-9]*)', rs.text)
 if match is None:
 	raise Exception('Failed to get vk hash: bad login or vk html markup was changed')
@@ -126,7 +126,7 @@ while offset < maxAudioNumber:
 
 	data['offset']= str(offset)
 
-	rs = session.post(urlAudioPHP, headers=headers, data=data)
+	rs = session.post(urlAudioPHP, headers=headers, data=data, verify=False)
 	print('Sending POST to al_audio.php... ', rs, 'CURRENT OFFSET=', offset)
 
 	raw_response = rs.text
