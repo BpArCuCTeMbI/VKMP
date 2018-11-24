@@ -74,6 +74,8 @@ print('Getting HTML of m.vk.com login page... ', loginHTML)
 
 loginFormAction = getFormAction(loginHTML.text)
 if not loginFormAction:
+	if platform == "win32":
+		os.remove(os.getenv('REQUESTS_CA_BUNDLE'))
 	raise Exception('Login link is not found, probably vk changed login flow')
 
 loginFormData = 	{
@@ -92,6 +94,8 @@ if match:
 	TFA_url = 'https://m.vk.com' + getFormAction(loginResponse.text)
 	if TFA_url == 'https://m.vk.com':
 		raise Exception('Failed to get 2FA url for auth request')
+		if platform == "win32":
+			os.remove(os.getenv('REQUESTS_CA_BUNDLE'))
 	
 	#print(TFA_url)
 	TFA_code = input('Enter the 2FA code from your authenticator app or VK support private message: ')
@@ -111,6 +115,8 @@ if match:
 rs = session.get('https://vk.com', headers=getHeaders)
 match = re.search(r'(hash)=([a-zA-Z0-9]*)', rs.text)
 if match is None:
+	if platform == "win32":
+		os.remove(os.getenv('REQUESTS_CA_BUNDLE'))
 	raise Exception('Failed to get vk hash: bad login or vk html markup was changed')
 vk_hash = match.group(2)
 print('HASH is: ' + vk_hash)
@@ -125,6 +131,8 @@ print('HASH is: ' + vk_hash)
 #get user id
 match = re.search(r'\"id\":([0-9]{1,9}),', rs.text)
 if match is None:
+	if platform == "win32":
+		os.remove(os.getenv('REQUESTS_CA_BUNDLE'))
 	raise Exception('Failed to get user id, probably vk html markup changed')
 owner_id = match.group(1)
 print('User id: ' + owner_id)
