@@ -4,6 +4,7 @@ import json
 import getpass
 import html
 import os
+import datetime
 from sys import platform
 
 def getFormAction(html: 'html code with some <form>') -> str:
@@ -24,6 +25,7 @@ def getFormAction(html: 'html code with some <form>') -> str:
 
 ###########################################################################
 user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36'
+user_agent2 = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.87 Safari/537.36'
 urlAudioPHP = 'https://vk.com/al_audio.php'
 
 maxAudioNumber = int(input('enter the number of tracks on your account (see your profile page): '))
@@ -145,7 +147,7 @@ f = open('./dump', 'a', encoding='utf-8')
 offset = 0
 trackCounter = 0
 headers = 	{
-			'User-Agent' : user_agent,
+			'User-Agent' : user_agent2,
 			'Content-Type' : 'application/x-www-form-urlencoded',
 			'X-Requested-With' : 'XMLHttpRequest'
 		}
@@ -156,31 +158,39 @@ data = 	{
 		'offset' : str(offset),
 		'playlist_id' : '-1',
 		'type' : 'playlist',
+		'track_type' : 'default',
 		'owner_id' : owner_id
 	}
 
 while offset < maxAudioNumber:
 
-	data['offset']= str(offset)
+	data['offset'] = str(offset)
 
 	rs = session.post(urlAudioPHP, headers=headers, data=data)
 	print('Sending POST to al_audio.php... ', rs, 'CURRENT OFFSET=', offset)
 
-	raw_response = rs.text
-	match = re.search(r'\{(.*)\}', raw_response)
-	cleanJSON = match.group(0)
+	#raw_response = rs.text
 
-	#f = open('./json_response', 'w')
+	#match = re.search(r'\{(.*)\}', raw_response)
+	#cleanJSON = match.group(0)
+
+	#f = open('./raw_response', 'w')
+	#f.write(raw_response)
+	#f.close()
+	#f = open('./clean_json', 'w')
 	#f.write(cleanJSON)
 
-	parsedJSON = json.loads(cleanJSON)
+	parsedJSON = json.loads(rs.text)
+	lst = parsedJSON['payload'][1][0]['list']
 	
-	trackCounter += len(parsedJSON['list'])
+	trackCounter += len(lst)
 
-	for i in range(len(parsedJSON['list'])):
-		f.write(html.unescape(parsedJSON['list'][i][4]) + ' - ' +  html.unescape(parsedJSON['list'][i][3]) + '\n')
+	for i in range(len(lst)):
+		track = '{[0]:<30} - {[1]:<30}{[2]:<30}'.format(html.unescape(lst[i][4]), html.unescape(lst[i][3]), str(datetime.timedelta(seconds=lst[i][5])))
+		f.write(track)
+		#f.write(html.unescape(lst[i][4]) + ' - ' +  html.unescape(lst[i][3]) + '\t' + str(datetime.timedelta(seconds=lst[i][5])) + '\n')
 	
-	offset += len(parsedJSON['list'])
+	offset += len(lst)
 
 f.close()
 
