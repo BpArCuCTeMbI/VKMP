@@ -186,9 +186,11 @@ while offset < maxAudioNumber:
 	trackCounter += len(lst)
 
 	for i in range(len(lst)):
-		track = '{[0]:<30} - {[1]:<30}{[2]:<30}'.format(html.unescape(lst[i][4]), html.unescape(lst[i][3]), str(datetime.timedelta(seconds=lst[i][5])))
+		name = html.unescape(lst[i][4])
+		performer = html.unescape(lst[i][3])
+		time = str(datetime.timedelta(seconds=lst[i][5]))
+		track = '{0:<60} - {1:<60}{2:<60}\n'.format(name, performer, time)
 		f.write(track)
-		#f.write(html.unescape(lst[i][4]) + ' - ' +  html.unescape(lst[i][3]) + '\t' + str(datetime.timedelta(seconds=lst[i][5])) + '\n')
 	
 	offset += len(lst)
 
