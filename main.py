@@ -175,7 +175,6 @@ if dump_format == 'csv':
     f.write('name,performer,time')
 
 offset = 0
-trackCounter = 0
 headers = {
     'User-Agent': user_agent2,
     'Content-Type': 'application/x-www-form-urlencoded',
@@ -216,8 +215,6 @@ while offset < maxAudioNumber:
     if not parsedJSON['payload'][1]:
         break  # exit on empty payload
     lst = parsedJSON['payload'][1][0]['list']
-
-    trackCounter += len(lst)
 
     added_tracks = 0
     for i, _ in enumerate(lst):
