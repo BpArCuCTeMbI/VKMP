@@ -1,12 +1,30 @@
 import os
 import re
 import json
+import html
 import getpass
 import datetime
-import html
+import argparse
 from sys import platform
 
 import requests
+
+
+def usage():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--email', help='Login email')
+    parser.add_argument('--tracks-num', '-n', metavar='N', type=int, help='Number of tracks to fetch')
+    parser.add_argument('--csv', help='Get dump in csv format', action='store_true')
+    return parser.parse_args()
+
+
+def get_track_row(name, performer, time, row_format='plain'):
+    """
+    function to get track row in specified format
+    """
+    if row_format == 'csv':
+        return '{},{},{}\n'.format(name, performer, time)
+    return '{0:<60} - {1:<60}{2:<60}\n'.format(name, performer, time)
 
 
 def getFormAction(html: 'html code with some <form>') -> str:
@@ -32,11 +50,11 @@ user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, lik
 user_agent2 = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.87 Safari/537.36'
 urlAudioPHP = 'https://vk.com/al_audio.php'
 
-maxAudioNumber = int(input('enter the number of tracks on your account (see your profile page): '))
+args = usage()
+maxAudioNumber = args.tracks_num or int(input('enter the number of tracks on your account (see your profile page): '))
 ##########################################################################
 getHeaders = {
     'User-Agent': user_agent
-
 }
 
 
@@ -69,8 +87,13 @@ if platform == "win32":
     print("Certificates extracted. Certs env variable changed: REQUESTS_CA_BUNDLE={0}".format(os.getenv('REQUESTS_CA_BUNDLE')))
 
 ###################################################################################
-email = input("email: ")
+email = args.email
+if email:
+    print('email: {}'.format(email))
+else:
+    email = input("email: ")
 password = getpass.getpass('password: ')
+dump_format = 'csv' if args.csv else 'tab'
 
 ######################################################################################
 # logging in from mobile version of VK (it's cleaner)
@@ -148,6 +171,9 @@ f = open('./dump', 'w', encoding='utf-8')
 f.close()
 f = open('./dump', 'a', encoding='utf-8')
 
+if dump_format == 'csv':
+    f.write('name,performer,time')
+
 offset = 0
 trackCounter = 0
 headers = {
@@ -165,6 +191,8 @@ data = {
     'track_type': 'default',
     'owner_id': owner_id
 }
+
+tracks = set()
 
 while offset < maxAudioNumber:
 
@@ -185,21 +213,29 @@ while offset < maxAudioNumber:
     # f.write(cleanJSON)
 
     parsedJSON = json.loads(rs.text)
+    if not parsedJSON['payload'][1]:
+        break  # exit on empty payload
     lst = parsedJSON['payload'][1][0]['list']
 
     trackCounter += len(lst)
 
+    added_tracks = 0
     for i, _ in enumerate(lst):
         name = html.unescape(lst[i][4])
         performer = html.unescape(lst[i][3])
         time = str(datetime.timedelta(seconds=lst[i][5]))
-        track = '{0:<60} - {1:<60}{2:<60}\n'.format(name, performer, time)
-        f.write(track)
+        track = get_track_row(name, performer, time, dump_format)
+        if track not in tracks:
+            added_tracks += 1
+            tracks.add(track)
+            f.write(track)
+    if added_tracks == 0:
+        break  # exit on recurse offset
 
     offset += len(lst)
 
 f.close()
 
-print('Tracks written to ./dump: ', trackCounter)
+print('Tracks written to ./dump: ', len(tracks))
 if platform == "win32":
     os.remove(os.getenv('REQUESTS_CA_BUNDLE'))
