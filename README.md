@@ -14,4 +14,10 @@ pip install -r requirements.txt
 
 ```bash
 python3 main.py
+
+# Dump in csv format
+python3 main.py --csv
+
+# Dump csv, login with email and specify track numbers to fetch
+python3 main.py --csv --email <your@email.com> -n 3224
 ```
