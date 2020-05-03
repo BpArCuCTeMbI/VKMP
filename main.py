@@ -23,7 +23,7 @@ def usage():
     parser.add_argument('--password', '-p', help='Login Password')
     parser.add_argument('--tracks-num', '-n', metavar='N', type=int, help='Number of tracks to fetch')
     parser.add_argument('--csv', help='Get dump in csv format', action='store_true')
-    return parser
+    return parser.parse_args()
 
 
 def get_track_row(name, performer, time, row_format='raw'):
@@ -257,5 +257,5 @@ def main(args=None):
 
 
 if __name__ == '__main__':
-    args = usage().parse_args()
+    args = usage()
     main(args)
