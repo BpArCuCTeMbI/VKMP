@@ -14,13 +14,16 @@ if platform == 'win32':
     import wincertstore
 
 
+DUMP_FILE = 'dump'
+
+
 def usage():
     parser = argparse.ArgumentParser()
     parser.add_argument('--email', '-e', help='Login email')
     parser.add_argument('--password', '-p', help='Login Password')
     parser.add_argument('--tracks-num', '-n', metavar='N', type=int, help='Number of tracks to fetch')
     parser.add_argument('--csv', help='Get dump in csv format', action='store_true')
-    return parser.parse_args()
+    return parser
 
 
 def get_track_row(name, performer, time, row_format='raw'):
@@ -28,7 +31,7 @@ def get_track_row(name, performer, time, row_format='raw'):
     function to get track row in specified format
     """
     if row_format == 'csv':
-        return '{},{},{}\n'.format(name, performer, time)
+        return '"{}","{}","{}"\n'.format(name, performer, time)
     return '{0:<60} - {1:<60}{2:<60}\n'.format(name, performer, time)
 
 
@@ -51,6 +54,7 @@ def getFormAction(html: 'html code with some <form>') -> str:
 
 
 ###########################################################################
+session = requests.Session()
 user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36'
 user_agent2 = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.87 Safari/537.36'
 urlAudioPHP = 'https://vk.com/al_audio.php'
@@ -84,25 +88,10 @@ def fetch_ssl_certificate():
         print('Certificates extracted. Certs env variable changed: REQUESTS_CA_BUNDLE={0}'.format(os.getenv('REQUESTS_CA_BUNDLE')))
 
 
-def main():
-
-    session = requests.Session()
-
-    # if you get some SSL errors, it's likely you have issues with Certificate Authority file.
-    # To fix this usually you need to provide a proper CA file to this program.
-    # If you're on LINUX, your system usually has actual file - just google its location
-    # and set the REQUESTS_CA_BUNDLE env variable in the next line:
-    fetch_ssl_certificate()
-
-    ###################################################################################
-    args = usage()
-    maxAudioNumber = args.tracks_num or int(input('enter the number of tracks on your account (see your profile page): '))
-    email = args.email or input('email: ')
-    password = args.password or getpass.getpass('password: ')
-    dumpFormat = 'csv' if args.csv else 'raw'
-
-    ######################################################################################
-    # logging in from mobile version of VK (it's cleaner)
+def login_vk(email, password):
+    """
+    logging in from mobile version of VK (it's cleaner)
+    """
     loginUrl = 'https://m.vk.com'
     loginHTML = session.get(loginUrl)
     print('Getting HTML of m.vk.com login page... ', loginHTML)
@@ -120,8 +109,6 @@ def main():
 
     loginResponse = session.post(loginFormAction, loginFormData)
     print('Trying to log in... ', loginResponse)
-    ########################################################################################
-
     match = re.search('authcheck', loginResponse.text)
     if match:
         print('Two-factor authentication is enabled.')
@@ -144,41 +131,31 @@ def main():
         }
         TFA_responce = session.post(TFA_url, headers=TFAHeaders, data=TFAFormData)
         print('Sending POST with 2FA... ', TFA_responce)
-    #######################################################################################
-    # vk hash and owner_id are user specific
-    # get vk hash (is not used now, probably will be used later)
-    rs = session.get('https://vk.com', headers=getHeaders)
-    match = re.search(r'(hash)=([a-zA-Z0-9]*)', rs.text)
+
+
+def get_vk_hash(response_text):
+    match = re.search(r'(hash)=([a-zA-Z0-9]*)', response_text)
     if match is None:
         if platform == 'win32':
             os.remove(os.getenv('REQUESTS_CA_BUNDLE'))
         raise Exception('Failed to get vk hash: bad login or vk html markup was changed')
     vk_hash = match.group(2)
     print('HASH is: ' + vk_hash)
+    return vk_hash
 
-    #########################
-    #f=open('./tmp', 'w')
-    # f.write(rs.text)
-    # f.close()
-    #########################
 
-    # get user id
-    match = re.search(r'\"id\":([0-9]{1,9}),', rs.text)
+def get_user_id(response_text):
+    match = re.search(r'\"id\":([0-9]{1,9}),', response_text)
     if match is None:
         if platform == 'win32':
             os.remove(os.getenv('REQUESTS_CA_BUNDLE'))
         raise Exception('Failed to get user id, probably vk html markup changed')
     owner_id = match.group(1)
     print('User id: ' + owner_id)
+    return owner_id
 
-    #######################################################################################
-    f = open('./dump', 'w', encoding='utf-8')
-    f.close()
-    f = open('./dump', 'a', encoding='utf-8')
 
-    if dumpFormat == 'csv':
-        f.write('name,performer,time')
-
+def fetch_tracks(owner_id, maxAudioNumber):
     offset = 0
     headers = {
         'User-Agent': user_agent2,
@@ -196,7 +173,7 @@ def main():
         'owner_id': owner_id
     }
 
-    tracks = set()
+    tracks = []
 
     while offset < maxAudioNumber:
 
@@ -226,22 +203,59 @@ def main():
             name = html.unescape(lst[i][4])
             performer = html.unescape(lst[i][3])
             time = str(datetime.timedelta(seconds=lst[i][5]))
-            track = get_track_row(name, performer, time, dumpFormat)
+            track = (name, performer, time)
             if track not in tracks:
                 added_tracks += 1
-                tracks.add(track)
-                f.write(track)
+                tracks.append(track)
         if added_tracks == 0:
             break  # exit on recursive offset
 
         offset += len(lst)
+    return tracks
 
-    f.close()
 
-    print('Tracks written to ./dump: ', len(tracks))
+def dump_tracks(tracks: list, file=DUMP_FILE, dumpFormat='raw'):
+    with open(file, 'w', encoding='utf-8') as f:
+        if dumpFormat == 'csv':
+            f.write('name,performer,time\n')
+        for name, performer, time in tracks:
+            track = get_track_row(name, performer, time, row_format=dumpFormat)
+            f.write(track)
+    print('Tracks written to ./{}: '.format(file), len(tracks))
+
+
+def main(args=None):
+
+    # if you get some SSL errors, it's likely you have issues with Certificate Authority file.
+    # To fix this usually you need to provide a proper CA file to this program.
+    # If you're on LINUX, your system usually has actual file - just google its location
+    # and set the REQUESTS_CA_BUNDLE env variable in the next line:
+    fetch_ssl_certificate()
+
+    ###################################################################################
+    maxAudioNumber = args and args.tracks_num or int(input('enter the number of tracks on your account (see your profile page): '))
+    email = args and args.email or input('email: ')
+    password = args and args.password or getpass.getpass('password: ')
+    dumpFormat = 'csv' if args and args.csv else 'raw'
+
+    ######################################################################################
+    login_vk(email, password)
+    #######################################################################################
+    # vk hash and owner_id are user specific
+    # get vk hash (is not used now, probably will be used later)
+    rs = session.get('https://vk.com', headers=getHeaders)
+    vk_hash = get_vk_hash(rs.text)
+    owner_id = get_user_id(rs.text)
+
+    #######################################################################################
+    tracks = fetch_tracks(owner_id, maxAudioNumber)
+    #######################################################################################
+    dump_tracks(tracks, dumpFormat=dumpFormat)
+
     if platform == 'win32':
         os.remove(os.getenv('REQUESTS_CA_BUNDLE'))
 
 
 if __name__ == '__main__':
-    main()
+    args = usage().parse_args()
+    main(args)
