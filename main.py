@@ -233,10 +233,10 @@ def main(args=None):
     fetch_ssl_certificate()
 
     ###################################################################################
-    maxAudioNumber = args and args.tracks_num or int(input('enter the number of tracks on your account (see your profile page): '))
-    email = args and args.email or input('email: ')
-    password = args and args.password or getpass.getpass('password: ')
-    dumpFormat = 'csv' if args and args.csv else 'raw'
+    maxAudioNumber = args and 'tracks_num' in args and args.tracks_num or int(input('enter the number of tracks on your account (see your profile page): '))
+    email = args and 'email' in args and args.email or input('email: ')
+    password = args and 'password' in args and args.password or getpass.getpass('password: ')
+    dumpFormat = 'csv' if args and 'csv' in args and args.csv else 'raw'
 
     ######################################################################################
     login_vk(email, password)
